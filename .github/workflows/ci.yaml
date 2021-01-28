@@ -39,35 +39,35 @@ jobs:
 
     steps:
       - name: Checkout repository
-        #if: needs.check-duplicate.outputs.should_skip != 'true'
+        if: needs.check-duplicate.outputs.should_skip != 'true'
         uses: actions/checkout@v2.3.4
 
       - name: Setup Scala
-        #if: needs.check-duplicate.outputs.should_skip != 'true'
+        if: needs.check-duplicate.outputs.should_skip != 'true'
         uses: olafurpg/setup-scala@v10
         with:
           java-version: ${{ matrix.java }}
 
       - name: Cache Coursier
-        #if: needs.check-duplicate.outputs.should_skip != 'true'
+        if: needs.check-duplicate.outputs.should_skip != 'true'
         uses: actions/cache@v2
         with:
           path: ~/.cache/coursier
           key: sbt-coursier-cache
 
       - name: Cache SBT
-        #if: needs.check-duplicate.outputs.should_skip != 'true'
+        if: needs.check-duplicate.outputs.should_skip != 'true'
         uses: actions/cache@v2
         with:
           path: ~/.sbt
           key: sbt-${{ hashFiles('**/build.sbt') }}
 
       - name: Test
-        #if: needs.check-duplicate.outputs.should_skip != 'true'
+        if: needs.check-duplicate.outputs.should_skip != 'true'
         run: sbt ++$SCALA_VERSION test
 
       - name: Scaladoc
-        #if: needs.check-duplicate.outputs.should_skip != 'true'
+        if: needs.check-duplicate.outputs.should_skip != 'true'
         run: sbt ++$SCALA_VERSION doc
 
   coverage:
