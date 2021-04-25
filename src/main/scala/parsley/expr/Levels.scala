@@ -9,7 +9,8 @@ import parsley.Parsley
   * @tparam A The type of structure produced by the list of levels
   * @since 4.0.0
   */
-sealed trait Levels[+A] {
+/* FIXME: This should be covariant! */
+sealed trait Levels[A] {
     /**
       * Builds a larger precedence table from strongest to weakest
       * @tparam B The new result type for the larger table
