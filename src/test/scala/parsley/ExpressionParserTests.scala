@@ -3,7 +3,7 @@ package parsley
 import parsley.character.digit
 import parsley.implicits.character.{charLift, stringLift}
 import parsley.expr.chain
-import parsley.expr.{precedence, Ops, GOps, SOps, InfixL, InfixR, Prefix, Postfix, NonAssoc, Atoms}
+import parsley.expr.{precedence, Ops, GOps, SOps, InfixL, InfixR, Prefix, Postfix, InfixN, Atoms}
 import parsley.Parsley._
 import parsley._
 
@@ -189,7 +189,7 @@ class ExpressionParserTests extends ParsleyTest {
         case class Parens(x: Comp) extends Atom
         case class Num(x: Int) extends Atom
         lazy val expr: Parsley[Comp] = precedence(
-            SOps(NonAssoc)('<' #> Less) +:
+            SOps(InfixN)('<' #> Less) +:
             SOps(InfixL)('+' #> Add) +:
             SOps(InfixR)('*' #> Mul) +:
             SOps[Factor, Atom](Prefix)('-' #> Neg) +:
@@ -210,7 +210,7 @@ class ExpressionParserTests extends ParsleyTest {
         case class Parens(x: Comp) extends Atom
         case class Num(x: Int) extends Atom
         lazy val expr: Parsley[Comp] = precedence(
-            GOps[Expr, Comp](NonAssoc)('<' #> Less)(CompOf) +:
+            GOps[Expr, Comp](InfixN)('<' #> Less)(CompOf) +:
             GOps[Term, Expr](InfixL)('+' #> Add)(ExprOf) +:
             GOps[Atom, Term](InfixR)('*' #> Mul)(TermOf) +:
             Atoms(digit.map(_.asDigit).map(Num), '(' *> expr.map(Parens) <* ')'))

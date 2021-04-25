@@ -40,11 +40,11 @@ object GOps {
     * @since 2.2.0
     */
     def apply[A, B](fixity: Fixity)(ops: Parsley[fixity.GOp[A, B]]*)(implicit wrap: A => B): Ops[A, B] = fixity match {
-        case InfixL   => Lefts[A, B](ops.asInstanceOf[Seq[Parsley[InfixL.GOp[A, B]]]]: _*)
-        case InfixR   => Rights[A, B](ops.asInstanceOf[Seq[Parsley[InfixR.GOp[A, B]]]]: _*)
-        case Prefix   => Prefixes[A, B](ops.asInstanceOf[Seq[Parsley[Prefix.GOp[A, B]]]]: _*)
-        case Postfix  => Postfixes[A, B](ops.asInstanceOf[Seq[Parsley[Postfix.GOp[A, B]]]]: _*)
-        case NonAssoc => NonAssocs[A, B](ops.asInstanceOf[Seq[Parsley[NonAssoc.GOp[A, B]]]]: _*)
+        case InfixL  => Lefts[A, B](ops.asInstanceOf[Seq[Parsley[InfixL.GOp[A, B]]]]: _*)
+        case InfixR  => Rights[A, B](ops.asInstanceOf[Seq[Parsley[InfixR.GOp[A, B]]]]: _*)
+        case Prefix  => Prefixes[A, B](ops.asInstanceOf[Seq[Parsley[Prefix.GOp[A, B]]]]: _*)
+        case Postfix => Postfixes[A, B](ops.asInstanceOf[Seq[Parsley[Postfix.GOp[A, B]]]]: _*)
+        case InfixN  => NonAssocs[A, B](ops.asInstanceOf[Seq[Parsley[InfixN.GOp[A, B]]]]: _*)
     }
 }
 

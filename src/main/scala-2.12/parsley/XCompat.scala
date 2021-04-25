@@ -4,18 +4,17 @@ import scala.collection.mutable
 import scala.language.higherKinds
 
 private [parsley] object XCompat {
-    def refl[A]: A =:= A = implicitly[A =:= A]
     def applyWrap[A, B](f: A => B)(p: Parsley[A]): Parsley[B] = f match {
         case refl: (A <:< B) => refl.substituteCo[Parsley](p)
         case refl: (A =:= B) => refl.substituteCo[Parsley](p)
         case wrap => p.map(wrap)
     }
 
-    implicit class SubtitutionEq[A, B](ev: A =:= B) {
+    private implicit class SubtitutionEq[A, B](ev: A =:= B) {
         def substituteCo[F[_]](fa: F[A]): F[B] = fa.asInstanceOf[F[B]]
     }
 
-    implicit class SubtitutionSub[A, B](ev: A <:< B) {
+    private implicit class SubtitutionSub[A, B](ev: A <:< B) {
         def substituteCo[F[_]](fa: F[A]): F[B] = fa.asInstanceOf[F[B]]
     }
 

@@ -52,10 +52,9 @@ case object Postfix extends Fixity {
 
 /**
   * Describes non-associative operators
-  * @since 3.0.0
+  * @since 4.0.0
   */
-// TODO: this should be renamed to InfixN
-case object NonAssoc extends Fixity {
+case object InfixN extends Fixity {
     override type GOp[-A, +B] = (A, A) => B
     override type SOp[-A, B >: A] = (A, A) => B
 }
