@@ -161,10 +161,10 @@ class CoreTests extends ParsleyTest {
     }
     /*it should "not affect the state of the registers on success" in {
         val r1 = Reg.make[Int]
-        (put(r1, 5) *> lookAhead(put(r1, 7) *> 'a') *> get(r1)).parse("a") should be {
+        (r1.put(5) *> lookAhead(r1.put(7) *> 'a') *> r1.get).parse("a") should be {
             Success(5)
         }
-        (put(r1, 5) *> (lookAhead(put(r1, 7) *> 'a') <|> 'b') *> get(r1)).parse("b") should be {
+        (r1.put(5) *> (lookAhead(r1.put(7) *> 'a') <|> 'b') *> r1.get).parse("b") should be {
             Success(7)
         }
     }*/
@@ -174,70 +174,63 @@ class CoreTests extends ParsleyTest {
     }
 
     "stateful parsers" should "allow for persistent state" in {
-        val r1 = Reg.make[Int]
-        val r2 = Reg.make[Int]
-        val p = (put(r1, 5)
-              *> put(r2, 7)
-              *> put(r1, lift2[Int, Int, Int](_+_, get(r1), get(r2)))
-              *> (get(r1) zip gets(r2, (x: Int) => x+1)))
+        val p = 5.makeReg(r1 =>
+                7.makeReg(r2 =>
+                 r1.put(lift2[Int, Int, Int](_+_, r1.get, r2.get))
+              *> (r1.get zip r2.gets(_+1))))
         p.parse("") should be (Success((12, 8)))
     }
     they should "be modifiable" in {
-        val r1 = Reg.make[Int]
-        val p = put(r1, 5) *> modify[Int](r1, _+1) *> get(r1)
+        val p = 5.makeReg(r1 => r1.modify(_+1) *> r1.get)
         p.parse("") should be (Success(6))
     }
     they should "provide localised context" in {
         val r1 = Reg.make[Int]
-        val p = put(r1, 5) *> (local(r1, (x: Int) => x+1, get(r1)) zip get(r1))
-        val q = put(r1, 5) *> (local(r1, 6, get(r1)) <~> get(r1))
+        val p = r1.put(5) *> (r1.local(_+1)(r1.get) zip r1.get)
+        val q = r1.put(5) *> (r1.local(6)(r1.get) <~> r1.get)
         p.parse("") should be (Success((6, 5)))
         q.parse("") should be (Success((6, 5)))
     }
     they should "be correctly allocated when found inside recursion" in {
         val r1 = Reg.make[Int]
-        val r2 = Reg.make[String]
-        lazy val rec: Parsley[Unit] = char('a') *> put(r1, 1) *> rec <|> unit
-        val p = put(r2, "hello :)") *> rec *> get(r2)
+        lazy val rec: Parsley[Unit] = char('a') *> r1.put(1) *> rec <|> unit
+        val p = "hello :)".makeReg(r2 => rec *> r2.get)
         p.parse("a") shouldBe Success("hello :)")
     }
     they should "be correctly allocated when found inside sub-routines" in {
         val r1 = Reg.make[Int]
-        val r2 = Reg.make[String]
-        val q = char('a') *> put(r1, 1)
-        val p = put(r2, "hello :)") *> q *> q *> get(r2)
+        val q = char('a') *> r1.put(1)
+        val p = "hello :)".makeReg(r2 => q *> q *> r2.get)
         p.parse("aa") shouldBe Success("hello :)")
     }
     they should "be preserved by callee-save in flatMap" in {
-        val r1 = Reg.make[Int]
-        val r2 = Reg.make[Int]
-        val r3 = Reg.make[String]
-        val p = (put(r3, "hello world") *> put(r1, 6)).flatMap(_ => put(r3, "hi") *> put(r2, 4)) *> (get(r1) <~> get(r3))
+        val p = "hello world".makeReg(r2 => {
+            6.makeReg(r1 => {
+                unit.flatMap(_ => 4.makeReg(_ => r2.put("hi"))) *>
+                (r1.get <~> r2.get)
+            })
+        })
         p.parse("") shouldBe Success((6, "hi"))
     }
     they should "be preserved by callee-save in flatMap even when it fails" in {
-        val r1 = Reg.make[Int]
-        val r2 = Reg.make[Int]
-        val r3 = Reg.make[String]
-        val p = put(r3, "hello world") *>
-                put(r1, 6) *>
-                combinator.optional(unit.flatMap(_ => put(r3, "hi") *> put(r2, 4) *> Parsley.empty)) *>
-                (get(r1) zip get(r3))
+        val p = "hello world".makeReg(r2 => {
+            6.makeReg(r1 => {
+                combinator.optional(unit.flatMap(_ => r2.put("hi") *> 4.makeReg(_ => Parsley.empty))) *>
+               (r1.get zip r2.get)
+            })
+        })
         p.parse("") shouldBe Success((6, "hi"))
     }
     they should "be able to be rolled back if they fail softly" in {
-        val r1 = Reg.make[Int]
-        val p = put(r1, 3) *> (rollback(r1, put(r1, 2) *> Parsley.empty) <|> unit) *> get(r1)
+        val p = 3.makeReg(r1 => (r1.rollback(r1.put(2) *> Parsley.empty) <|> unit) *> r1.get)
         p.parse("") shouldBe Success(3)
     }
     they should "but not roll back if they hard fail" in {
-        val r1 = Reg.make[Int]
-        val p = put(r1, 3) *> (attempt(rollback(r1, 'a' *> put(r1, 2) *> Parsley.empty)) <|> unit) *> get(r1)
+        val p = 3.makeReg(r1 => (attempt(r1.rollback('a' *> r1.put(2) *> Parsley.empty)) <|> unit) *> r1.get)
         p.parse("a") shouldBe Success(2)
     }
     they should "not rollback if successful" in {
-        val r1 = Reg.make[Int]
-        val p = put(r1, 3) *> rollback(r1, put(r1, 2)) *> get(r1)
+        val p = 3.makeReg(r1 => r1.rollback(r1.put(2)) *> r1.get)
         p.parse("") shouldBe Success(2)
     }
 
@@ -332,8 +325,8 @@ class CoreTests extends ParsleyTest {
     "failures through call boundary" should "ensure that stateful instructions are restored correctly" in {
         import parsley.combinator.{whileP, some, eof}
         val n = registers.Reg.make[Int]
-        lazy val p: Parsley[Unit] = whileP((gets(n, (i: Int) => i % 2 == 0) ?: (some('a'), some('b'))) *> modify[Int](n, _ - 1) *> gets(n, (i: Int) => i != 0))
-        val q = attempt(put(n, 4) *> p <* eof) <|> (put(n, 2) *> p <* eof)
+        lazy val p: Parsley[Unit] = whileP(n.gets(_ % 2 == 0) ?: (some('a'), some('b')) *> n.modify(_ - 1) *> n.gets(_ != 0))
+        val q = attempt(n.put(4) *> p <* eof) <|> (n.put(2) *> p <* eof)
         q.parse("aaaabbb") shouldBe a [Success[_]]
     }
 }
